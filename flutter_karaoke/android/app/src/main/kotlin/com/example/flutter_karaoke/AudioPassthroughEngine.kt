@@ -24,6 +24,7 @@ class AudioPassthroughEngine(private val context: Context) {
     private var audioTrack: AudioTrack? = null
     private var echoCanceler: AcousticEchoCanceler? = null
     private var noiseSuppressor: NoiseSuppressor? = null
+    private var isNoiseSuppressorEnabled = true
 
     @Synchronized
     fun start(): Boolean {
@@ -85,11 +86,11 @@ class AudioPassthroughEngine(private val context: Context) {
                 Log.w(TAG, "AcousticEchoCanceler not available on this device")
             }
 
-            // Enable hardware noise suppression if available
+            // Enable hardware noise suppression if available and enabled by user settings
             if (NoiseSuppressor.isAvailable()) {
                 noiseSuppressor = NoiseSuppressor.create(sessionId)?.apply {
-                    enabled = true
-                    Log.d(TAG, "NoiseSuppressor initialized and enabled")
+                    enabled = isNoiseSuppressorEnabled
+                    Log.d(TAG, "NoiseSuppressor initialized and set to enabled = $isNoiseSuppressorEnabled")
                 }
             }
 
@@ -186,6 +187,26 @@ class AudioPassthroughEngine(private val context: Context) {
     @Synchronized
     fun isRecording(): Boolean {
         return isRunning
+    }
+
+    @Synchronized
+    fun toggleNoiseSuppressor(enabled: Boolean): Boolean {
+        if (!NoiseSuppressor.isAvailable()) return false
+        isNoiseSuppressorEnabled = enabled
+        noiseSuppressor?.let { ns ->
+            ns.enabled = enabled
+            Log.d(TAG, "NoiseSuppressor running instance enabled set to: $enabled")
+        }
+        return true
+    }
+
+    @Synchronized
+    fun isNoiseSuppressorEnabled(): Boolean {
+        return isNoiseSuppressorEnabled
+    }
+
+    fun isNoiseSuppressorSupported(): Boolean {
+        return NoiseSuppressor.isAvailable()
     }
 
     private fun releaseResources() {

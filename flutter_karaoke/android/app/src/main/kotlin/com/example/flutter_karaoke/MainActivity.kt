@@ -30,6 +30,17 @@ class MainActivity : FlutterActivity() {
                 "isRunning" -> {
                     result.success(engine?.isRecording() ?: false)
                 }
+                "isNsSupported" -> {
+                    result.success(engine?.isNoiseSuppressorSupported() ?: false)
+                }
+                "isNsEnabled" -> {
+                    result.success(engine?.isNoiseSuppressorEnabled() ?: false)
+                }
+                "toggleNs" -> {
+                    val enabled = call.argument<Boolean>("enabled") ?: true
+                    val success = engine?.toggleNoiseSuppressor(enabled) ?: false
+                    result.success(success)
+                }
                 else -> {
                     result.notImplemented()
                 }

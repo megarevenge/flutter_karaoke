@@ -39,6 +39,8 @@ class _MicrophoneMonitorHomeState extends State<MicrophoneMonitorHome>
   String _status = 'Idle';
   bool _isPlaying = false;
   bool _wasPlayingBeforePause = false;
+  bool _isNsSupported = false;
+  bool _isNsEnabled = true;
 
   @override
   void initState() {
@@ -76,6 +78,13 @@ class _MicrophoneMonitorHomeState extends State<MicrophoneMonitorHome>
   Future<void> _checkInitialStatus() async {
     try {
       final bool running = await _channel.invokeMethod('isRunning');
+      final bool supported = await _channel.invokeMethod('isNsSupported');
+      final bool nsEnabled = await _channel.invokeMethod('isNsEnabled');
+      setState(() {
+        _isNsSupported = supported;
+        _isNsEnabled = nsEnabled;
+      });
+
       if (running) {
         setState(() {
           _isPlaying = true;
@@ -143,6 +152,24 @@ class _MicrophoneMonitorHomeState extends State<MicrophoneMonitorHome>
     }
   }
 
+  Future<void> _toggleNs() async {
+    try {
+      final bool nextState = !_isNsEnabled;
+      final bool success = await _channel.invokeMethod('toggleNs', {
+        'enabled': nextState,
+      });
+      if (success) {
+        setState(() {
+          _isNsEnabled = nextState;
+        });
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _status = 'Error: ${e.message}';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,6 +184,18 @@ class _MicrophoneMonitorHomeState extends State<MicrophoneMonitorHome>
               onPressed: _isPlaying ? _stopLoopback : _startLoopback,
               child: Text(_isPlaying ? 'Stop' : 'Start'),
             ),
+            const SizedBox(height: 30.0),
+            Text(
+              'Noise Suppression: ${_isNsSupported ? (_isNsEnabled ? "Enabled" : "Disabled") : "Not Supported"}',
+              style: const TextStyle(fontSize: 16.0),
+            ),
+            if (_isNsSupported) ...[
+              const SizedBox(height: 10.0),
+              ElevatedButton(
+                onPressed: _toggleNs,
+                child: Text(_isNsEnabled ? 'Turn Off NS' : 'Turn On NS'),
+              ),
+            ],
           ],
         ),
       ),
